@@ -1,32 +1,23 @@
 /**
   * Created by Daniel Mattheiss, 06/04/2016
-  * Last updated 06/04/2016
+  * Last updated 06/05/2016
   * This Google chrome extension adds needed functionality to slvsh.com, a competition freeskiing business, website, and concept.
-  * Current features include infinite scroll, search, new video notifications, and adding videos to favorites.
+  * Current features include infinite scroll, search, and adding videos to favorites.
   *
-  * Plans for the future include a queueing videos, tournament view for the SLVSH Cups, improved search and UI, playlist creation and sharing, comments sections, game ratings, and better video sorting
+  * Plans for the future include new video notifications, queueing videos, tournament view for the SLVSH Cups, improved search and UI,
+  *  playlist creation and sharing, comments sections, game ratings, and better video sorting
   * Feel free to fork/contribute. If you are planning to work on one of the above (unimplemented) features, communicate with me so we don't have conflicting code.
   *
   * Licensed under the MIT License
   */
 
 
+//Variables
 var searchResults, jsonVideos = [], games = [], theater = [];
-
 var searchResultsMouseOver = false, favoritesBarMouseOver = false;
 
-console.log("here");
-document.addEventListener("DOMSubtreeModified", reloadOnAjaxLoad, false);
 
-function reloadOnAjaxLoad()
-{
-    document.removeEventListener("DOMSubtreeModified", reloadOnAjaxLoad);
-    setTimeout(function() {
-        document.addEventListener("DOMSubtreeModified", reloadOnAjaxLoad, false);
-    }, 1000);
-
-}
-
+//Instantiates auto load on scroll
 function loadMore() {
     if(document.getElementsByClassName("load-more").length > 0){
         loadMoreBtn = document.getElementsByClassName("load-more")[0];
@@ -40,6 +31,7 @@ function loadMore() {
     }
 }
 
+//
 //Not working right - cant handle asynchronous load more
 function postFunctions() {
     var postFunctionsHtml = "<div class='post-functions'><!--<div class='post-functions-btn'>Queue</div><span class='vertical'>|</span>--><div class='post-functions-btn'>&#9734; Favorite</div></div>";
@@ -53,29 +45,16 @@ function postFunctions() {
         mouseenter: function() {
             $(this).prepend(postFunctionsHtml);
              //Set up queue and favorite clicks
-            $(".post-functions-btn").click(function() {
-                var favorites = [];
-                var link = $(this).parent().next().attr("href").toLowerCase();
-                chrome.storage.sync.get("favorites", function(items) {
-                    favorites = items.favorites;
-                    var jsonfile = {};
-                    favorites.push(link);
-                    jsonfile["favorites"] = favorites;
-                    chrome.storage.sync.set(jsonfile, function() {
-                      notify("Favorited!");
-                    });
-                })
-
-            });
+             storeFavorites();
         },
         mouseleave: function() {
             $(".post-functions").remove();            
         }
     }, ".post > .inner");
 
-
 }
 
+//Adds the searchbar and binds functionality
 function searchBar() {
 
     //Just create actions bar icon here - should be moved in future
@@ -110,6 +89,7 @@ function searchBar() {
     });
 }
 
+//Called for search and to display results
 function searchAction(elem) {
     searchResults = $("#search-results-powerup");
     searchResults.mouseover(function() { searchResultsMouseOver = true;})
@@ -132,8 +112,7 @@ function searchAction(elem) {
 }
 
 
-
-
+//Ajax get request for json games and theater
 function getAllVideos() {
     //Get first page of games to get the next n pages
     $.get("http://www.slvsh.com/games.json", function(data) {
@@ -188,6 +167,7 @@ function getSearchResults(val) {
     });
 }
 
+//Adds the actions bar and btn to header nav
 function actionsBar() {
     //actionsBar = "<div class='row' id='actions-bar'><div id='actions-btns' class='col-xs-1'><div id='queue-btn'>Queue</div><hr><div id='favorites-btn'>Favorites</div></div><div id='actions-content' class='col-xs-11'></div></div>";
     actionsBar = "<div id='actions-bar'><div id='actions-content' class='col-xs-12'></div></div>";
@@ -206,32 +186,39 @@ function actionsBar() {
             actionsBar.hide();
             $(this).attr("active", "false");
         }
-    })
-
-    /*$("#actions-bar-btn").toggle(function() {
-        //actionsBar.show();
-    }, function() {
-        //actionsBar.hide();
-    })*/
-
-
+    });
 }
 
+//Binds to click event for storing favorites
+function storeFavorites() {
+    $(".post-functions-btn").click(function() {
+        var favorites = [];
+        var link = $(this).parent().next().attr("href").toLowerCase();
+        chrome.storage.sync.get("favorites", function(items) {
+            favorites = items.favorites;
+            var jsonfile = {};
+            favorites.push(link);
+            jsonfile["favorites"] = favorites;
+            chrome.storage.sync.set(jsonfile, function() {
+              notify("Favorited!");
+            });
+        })
+    });
+}
+
+//Loads favorites for a user into the actions bar
 function loadFavorites() {
     var actionsContent = $("#actions-content");
     actionsContent.empty();
     var favorites = [];
     var actionsContentHtml = "";
+
     chrome.storage.sync.get("favorites", function(items) {
         favorites = items.favorites;
         for(var i = 0; i < favorites.length; i++){
             var link = favorites[i];
             var id = link.split("/")[2].substring(0,3);
-            //$.ajax({
-             //   url : "http://www.slvsh.com/games/" + id + ".json",
-            //    type : "get",
-            //    async: false,
-            //    success: function(data) {
+
             var data = getPostById(id);
             if(data){
                 actionsContentHtml = "<div class='col-xs-2 favorites-item'><a href='" + link + "'>" + data.title + "</a></div>";
@@ -241,6 +228,7 @@ function loadFavorites() {
     });
 }
 
+//Pops up a notification bar
 function notify(message){
     var notifyBar = "<div class='row' id='notify-bar'>" + message + "</div>";
     $(notifyBar).insertAfter("#nav").delay(3000).fadeOut(function() {
@@ -251,12 +239,14 @@ function notify(message){
     notifyBar.css({top: top, left:0});
 }
 
+//Queries jsonVideos to find a post/video by id
 function getPostById(id){
     jsonVideos = games.concat(theater);
     return jsonVideos.filter((obj) => obj.id == id)[0];
 }
 
 
+//Adds all current features to the document!
 function instantiate() {
     getAllVideos();     //Retrieve all slvsh videos in json format asynchronously
     loadMore();         //Infinite scroll

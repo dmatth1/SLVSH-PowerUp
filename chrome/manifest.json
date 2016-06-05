@@ -1,22 +1,17 @@
 {
   "name":
-  "Slvsh PowerUp",
+  "SLVSH PowerUp",
 
   "description":
   "Adds sugar functionality to SLVSH's website, slvsh.com",
 
   "version":
-  "0.0.0",
+  "0.0.1",
 
   "manifest_version":
   2,
 
   "icons": {
-
-    "16": "icon-16.png",
-    "32": "icon-32.png",
-    "64": "icon-64.png",
-    "128": "icon-128.png"
 
   },
 
@@ -27,8 +22,7 @@
       ["*://*.slvsh.com/*"],
 
       "exclude_matches":
-      ["http://github.com/*/*",
-        "https://github.com/*/*"],
+      [],
 
       "css":
       ["styles.css"],
@@ -38,12 +32,10 @@
 
       "run_at":
       "document_end"
-
     }
   ],
 
   "permissions": [
-    "tabs",
     "storage",
     "*://*.slvsh.com/*"
   ]
