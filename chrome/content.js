@@ -197,7 +197,8 @@ function storeFavorites() {
         chrome.storage.sync.get("favorites", function(items) {
             favorites = items.favorites;
             var jsonfile = {};
-            favorites.push(link);
+            if(!favorites || !favorites.length) favorites = [link];
+            else favorites.push(link);
             jsonfile["favorites"] = favorites;
             chrome.storage.sync.set(jsonfile, function() {
               notify("Favorited!");
@@ -215,14 +216,19 @@ function loadFavorites() {
 
     chrome.storage.sync.get("favorites", function(items) {
         favorites = items.favorites;
-        for(var i = 0; i < favorites.length; i++){
-            var link = favorites[i];
-            var id = link.split("/")[2].substring(0,3);
+        if(!favorites || !favorites.length){
+            actionsContent.append("<div class='col-xs-12 favorites-item'>You have no favorites yet. Add some!</div>");
+        }
+        else{
+            for(var i = 0; i < favorites.length; i++){
+                var link = favorites[i];
+                var id = link.split("/")[2].substring(0,3);
 
-            var data = getPostById(id);
-            if(data){
-                actionsContentHtml = "<div class='col-xs-2 favorites-item'><a href='" + link + "'>" + data.title + "</a></div>";
-                actionsContent.append(actionsContentHtml);
+                var data = getPostById(id);
+                if(data){
+                    actionsContentHtml = "<div class='col-xs-2 favorites-item'><a href='" + link + "'>" + data.title + "</a></div>";
+                    actionsContent.append(actionsContentHtml);
+                }
             }
         }
     });
