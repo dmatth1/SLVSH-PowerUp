@@ -1,21 +1,91 @@
 /**
   * Created by Daniel Mattheiss, 06/04/2016
-  * Last updated 06/05/2016
+  * Last updated 06/06/2016
   * This Google chrome extension adds needed functionality to slvsh.com, a competition freeskiing business, website, and concept.
   * Current features include infinite scroll, search, and adding videos to favorites.
   *
-  * Plans for the future include new video notifications, queueing videos, tournament view for the SLVSH Cups, improved search and UI,
+  * Plans for the future include remebering scroll position on back button, new video notifications, queueing videos, tournament view for the SLVSH Cups, improved search and UI,
   *  playlist creation and sharing, comments sections, game ratings, and better video sorting
   * Feel free to fork/contribute. If you are planning to work on one of the above (unimplemented) features, communicate with me so we don't have conflicting code.
   *
   * Licensed under the MIT License
   */
 
-
 //Variables
 var searchResults, jsonVideos = [], games = [], theater = [];
 var searchResultsMouseOver = false, favoritesBarMouseOver = false;
 
+
+/*function checkForNewGame(videos){
+    //Check for any new videos
+    chrome.storage.sync.get("newPost", function(items) {
+        newPost = items.newPost;
+        var jsonfile = {};
+        console.log(newPost);
+        if(!newPost){
+            newPost = getNewestPost(videos);
+            console.log("yo");
+        }
+        else{
+            if(newPost.id <= getNewestPost(videos).id) return;
+        }
+        console.log(newPost);
+        jsonfile["newPost"] = newPost;
+        console.log(jsonfile);
+        chrome.storage.sync.set(jsonfile, function() {
+          //notify("Favorited!");
+        });
+    });
+}
+//Helper function to get the newest slvsh post for a set of videos
+function getNewestPost(videos){
+    var maxID = 1, newestVideo = null, currVideo = null;
+    for(var i = 0; i < videos.length; i++){
+        currVideo = videos[i];
+        if(currVideo.id > maxID){
+            maxID = currVideo.id;
+            newestVideo = currVideo;
+        }
+    }
+
+    return newestVideo;
+}*/
+
+//Ajax get request for json games and theater
+function getAllVideos() {
+    //Get first page of games to get the next n pages
+    $.get("http://www.slvsh.com/games.json", function(data) {
+        games = data.posts;
+        for(var i = data.current_page + 1; i < data.total_pages + 1; i++){
+            $.get("http://www.slvsh.com/games.json", { page: i, is_active: !0}, function(data, status){
+                games = games.concat(data.posts);
+            });
+        }
+    }).done(function() {
+        //checkForNewGame(games);
+    });
+
+    //At the same time add to theater
+    $.get("http://www.slvsh.com/theater.json", function(data) {
+        theater = data.posts;
+        for(var i = data.current_page + 1; i < data.total_pages + 1; i++){
+            $.get("http://www.slvsh.com/theater.json", { page: i, is_active: !0}, function(data, status){
+                theater = theater.concat(data.posts);
+            });
+        }
+    }).done(function() {
+        //checkForNewGame(theater);
+    });
+}
+
+//function checkForUpdate(){
+//}
+
+//var newPost = checkForUpdate();
+
+//if(!window.location.href.toLowerCase().contains("slvsh")){
+//
+//}
 
 //Instantiates auto load on scroll
 function loadMore() {
@@ -112,28 +182,7 @@ function searchAction(elem) {
 }
 
 
-//Ajax get request for json games and theater
-function getAllVideos() {
-    //Get first page of games to get the next n pages
-    $.get("http://www.slvsh.com/games.json", function(data) {
-        games = data.posts;
-        for(var i = data.current_page + 1; i < data.total_pages + 1; i++){
-            $.get("http://www.slvsh.com/games.json", { page: i, is_active: !0}, function(data, status){
-                games = games.concat(data.posts);
-            });
-        }
-    });
 
-    //At the same time add to theater
-    $.get("http://www.slvsh.com/theater.json", function(data) {
-        theater = data.posts;
-        for(var i = data.current_page + 1; i < data.total_pages + 1; i++){
-            $.get("http://www.slvsh.com/theater.json", { page: i, is_active: !0}, function(data, status){
-                theater = theater.concat(data.posts);
-            });
-        }
-    });
-}
 
 
 //Returns search results for searching all slvsh videos
@@ -254,11 +303,12 @@ function getPostById(id){
 
 //Adds all current features to the document!
 function instantiate() {
-    getAllVideos();     //Retrieve all slvsh videos in json format asynchronously
-    loadMore();         //Infinite scroll
-    searchBar();        //Add search bar and associated elements
-    postFunctions();    //Add functions to each video post 
-    actionsBar();        //Add footer bar for queueing and favorites
+
+    getAllVideos();         //Retrieve all slvsh videos in json format asynchronously
+    loadMore();             //Infinite scroll
+    searchBar();            //Add search bar and associated elements
+    postFunctions();        //Add functions to each video post 
+    actionsBar();           //Add footer bar for queueing and favorites
 }
 
 function reinit() {

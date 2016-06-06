@@ -19,7 +19,8 @@
     {
 
       "matches":
-      ["*://*.slvsh.com/*"],
+      ["<all_urls>",
+      "*://*.slvsh.com/*"],
 
       "exclude_matches":
       [],
