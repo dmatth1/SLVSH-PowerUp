@@ -4,7 +4,8 @@
   * This Google chrome extension adds needed functionality to slvsh.com, a competition freeskiing business, website, and concept.
   * Current features include infinite scroll, search, and adding videos to favorites.
   *
-  * Plans for the future include remebering scroll position on back button, new video notifications, queueing videos, tournament view for the SLVSH Cups, improved search and UI,
+  * Plans for the future include fixing filtering -> load more bug (load all videos, not filtered videos), remebering scroll position on back button, 
+  *  new video notifications, queueing videos, tournament view for the SLVSH Cups, improved search and UI,
   *  playlist creation and sharing, comments sections, game ratings, and better video sorting
   * Feel free to fork/contribute. If you are planning to work on one of the above (unimplemented) features, communicate with me so we don't have conflicting code.
   *
@@ -301,6 +302,26 @@ function getPostById(id){
 }
 
 
+//Loads extra filters for the games page
+function loadGamesFilters() {
+    var leftSidebar = $("#left-side-bar > .fixed-inner > .hidden-xs");
+    loadTournamentFilters(leftSidebar);
+}
+
+function loadTournamentFilters(sidebar) {
+    console.log("yayo");
+    sidebar.append("<li><a class id='sunset-park-cup-filter' href='#slvsh_cup_sunset_park'>Sunset Park Cup</a></li>");
+    sidebar.append("<li><a class id='perisher-cup-filter' href='#slvsh_cup_perisher'>Perisher Cup</a></li>");
+    $("#sunset-park-cup-filter").click(function() {
+        var currPosts = $(".paginate.posts > .item-container").children();//attr("data-paginate", "{'resource': 'games'}");
+        for(var i = 0; i < currPosts.length; i++){
+            var post = $(currPosts[i]);
+            if(post.hasClass("post")) console.log("oh");
+        }
+    })
+}
+
+
 //Adds all current features to the document!
 function instantiate() {
 
@@ -309,6 +330,10 @@ function instantiate() {
     searchBar();            //Add search bar and associated elements
     postFunctions();        //Add functions to each video post 
     actionsBar();           //Add footer bar for queueing and favorites
+
+    //Url specific functions
+    var url = window.location.pathname.toLowerCase();
+    if(url.startsWith("/games")) loadGamesFilters();         //Extra games filters
 }
 
 function reinit() {
