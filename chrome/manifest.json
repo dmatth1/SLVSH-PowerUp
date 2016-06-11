@@ -6,7 +6,7 @@
   "Adds sugar functionality to SLVSH's website, slvsh.com",
 
   "version":
-  "0.0.2",
+  "0.0.3",
 
   "manifest_version":
   2,
@@ -19,14 +19,14 @@
     {
 
       "matches":
-      ["<all_urls>",
+      [
       "*://*.slvsh.com/*"],
 
       "exclude_matches":
       [],
 
       "css":
-      ["styles.css"],
+      ["styles.css", "loader.css"],
 
       "js":
       ["jquery.js", "content.js"],
