@@ -39,13 +39,14 @@ span.vertical
 }
 #search-results-powerup{
 	display:none;
-	width:250px;
+	width:400px;
 	padding:5px 10px;
 	background-color:#fff;
 	opacity: .98;
 	border-radius:0px 0px 5px 5px;
 	height:400px;
 	overflow:scroll;
+	line-height:initial;
 }
 .search-results-link{
 	display:block;
@@ -55,7 +56,8 @@ span.vertical
 	margin-bottom:5px;
 	border-bottom:1px solid black;
 }
-.search-result:hover{
+.search-result-title:hover{
+	text-decoration:underline;
 }
 .search-result > a:hover{
 	text-decoration:underline;
@@ -112,7 +114,9 @@ span.vertical
 #actions-btns > div:hover{
 	font-weight:bold;
 }
-.favorites-item{
-	border-left:1px solid LightGrey;
-	text-align:center;
+.favorites-title:hover{
+	text-decoration: underline;
+}
+.favorites-item > a:hover{
+	text-decoration:underline;
 }
