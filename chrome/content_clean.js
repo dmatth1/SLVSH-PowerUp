@@ -1,6 +1,6 @@
 /**
   * Created by Daniel Mattheiss, 06/04/2016
-  * Last updated 06/14/2016
+  * Last updated 06/16/2016
   * This Google chrome extension adds needed functionality to slvsh.com, a competition freeskiing business, website, and concept.
   * Current features include infinite scroll, search, and adding videos to favorites.
   *
@@ -27,7 +27,7 @@ var currentVideosLoaded = false;
 
 //Filters all videos json for the videos needed for the current page
 function filterVideosForCurrentPage(){
-    console.log("filtering");
+    //console.log("filtering");
 
     var url = window.location.href.toLowerCase();
     var is_category = url.indexOf("category") > -1;
@@ -37,29 +37,29 @@ function filterVideosForCurrentPage(){
         onVideosListingPage = true;
         if(is_category){
             if(url.endsWith("slvsh")){
-                console.log("on slvsh games category page");
+                //console.log("on slvsh games category page");
                 currentVideos = games.filter((x) => x.post_class == "slvsh");
             }
             else if(url.endsWith("instabanger")){
-                console.log("on instabanger games category page");  
+                //console.log("on instabanger games category page");  
                 currentVideos = games.filter((x) => x.post_class == "instabanger");              
             }
             else if(url.endsWith("zero")){
-                console.log("on zero games category page");  
+                //console.log("on zero games category page");  
                 currentVideos = games.filter((x) => x.post_class == "zero");                
             }
             else if(url.endsWith("inonout")){
-                console.log("on inonout games category page");  
+                //console.log("on inonout games category page");  
                 currentVideos = games.filter((x) => x.post_class == "inonout");                
             }
             else if(url.endsWith("addon")){
-                console.log("on addon games category page");  
+                //console.log("on addon games category page");  
                 currentVideos = games.filter((x) => x.post_class == "addon");                
             }
         }
         else{
             currentVideos = games;
-            console.log("on base games page");
+            //console.log("on base games page");
         }
         currentVideos = currentVideos.sort((a,b) => b.id - a.id);
         currentVideosLoaded = true;
@@ -70,25 +70,25 @@ function filterVideosForCurrentPage(){
         onVideosListingPage = true;
         if(is_category){
             if(url.endsWith("edit")){
-                console.log("on edit theater category page");  
+                //console.log("on edit theater category page");  
                 currentVideos = theater.filter((x) => x.post_class == "edit");
             }
             else if(url.endsWith("segment")){
-                console.log("on segment theater category page");  
+                //console.log("on segment theater category page");  
                 currentVideos = theater.filter((x) => x.post_class == "segment");              
             }
             else if(url.endsWith("fullmovie")){
-                console.log("on fullmovie theater category page");
+                //console.log("on fullmovie theater category page");
                 currentVideos = theater.filter((x) => x.post_class == "fullmovie");                
             }
             else if(url.endsWith("classic")){
-                console.log("on classic theater category page");
+                //console.log("on classic theater category page");
                 currentVideos = theater.filter((x) => x.post_class == "classic");                
             }
         }
         else{
             currentVideos = theater;
-            console.log("on base theater page");
+            //console.log("on base theater page");
         }
         currentVideos = currentVideos.sort((a,b) => b.id - a.id);
         currentVideosLoaded = true;
@@ -100,7 +100,7 @@ function filterVideosForCurrentPage(){
         currentVideos = games.concat(theater);
         currentVideos = currentVideos.sort((a,b) => b.id - a.id);
         currentVideosLoaded = true;
-        console.log("on base home page");
+        //console.log("on base home page");
         instantiate();
     }
 }
@@ -128,7 +128,7 @@ function getGamesJSON(counter){
     done(function() {
         if(!exceededTotalPages && counter == gamesTotalPages){
             gamesLoaded = true;
-            console.log("games loaded");
+            //console.log("games loaded");
             if(theaterLoaded){
                 filterVideosForCurrentPage();
             }
@@ -157,7 +157,7 @@ function getTheaterJSON(counter){
     done(function() {
        if(!exceededTotalPages && counter == theaterTotalPages){
             theaterLoaded = true;
-            console.log("theater loaded");
+            //console.log("theater loaded");
             if(gamesLoaded){
                 filterVideosForCurrentPage();
             }
@@ -176,15 +176,15 @@ function getAllVideos() {
 
 
 function loadMoreInitial(clicked = false){
-    console.log("initial loading");
+    //console.log("initial loading");
     var loadMoreBtn = $(".load-more");
     if(loadMoreBtn.length || $(".loader").length){
         $(window).scroll(function() {
-            if(!clicked && $(window).scrollTop() + $(window).height() > $(document).height() -800){
+            if(!clicked && $(window).scrollTop() + $(window).height() > $(document).height() -1000){
                 $(window).unbind('scroll');
                 $(".load-more").click();
                 videoScrollPage++;
-                console.log("Video Scroll Page:" + videoScrollPage);   
+                //console.log("Video Scroll Page:" + videoScrollPage);   
                 setTimeout(loadMoreInitial(true), 250);
             }
             else if(clicked){
@@ -206,18 +206,18 @@ function loadMoreInitial(clicked = false){
 // -if the user doesn't scroll from the bottom of the screen nothing no videos will show
 function loadMore(waiting = false) {
     $(window).unbind("scroll");
-    console.log("loading");
+    //console.log("loading");
     if($(".load-more").length || $(".loader").length){
-        //console.log("start");
+        ////console.log("start");
         /*if(waiting){
             var success = loadMoreFunc();
             if(success){
                 setTimeout(loadMore(), 1000);
-                console.log("inside waiting 1");
+                //console.log("inside waiting 1");
             }
             else{
                 setTimeout(loadMore(true), 1000);
-                                console.log("inside waiting 2");
+                                //console.log("inside waiting 2");
             }
             return;
         }*/
@@ -225,14 +225,14 @@ function loadMore(waiting = false) {
             $(window).unbind('scroll');
             loadMoreFunc();
             setTimeout(loadMore(), 250);
-            console.log("initial scroll");
+            //console.log("initial scroll");
             return;                
         }
         $(window).scroll(function() {
-            //console.log("inside scroll");
+            ////console.log("inside scroll");
             //If we are within infinite scroll threshold or if we are waiting for current videos to load
             if(/*!waiting && */$(window).scrollTop() + $(window).height() > $(document).height() -300) {
-                //console.log("scrolled");
+                ////console.log("scrolled");
                 $(window).unbind('scroll');
                 loadMoreFunc();
                 setTimeout(loadMore(), 250);
@@ -367,7 +367,7 @@ function actionsBar() {
 function storeFavorites() {
     $(".post-functions-btn").click(function() { 
         var favorites = [];
-        console.log($($(this).parent().next()));
+        ////console.log($($(this).parent().next()));
         var link = $(this).parent().next().children("a").attr("href").toLowerCase();
         chrome.storage.sync.get("favorites", function(items) {
             favorites = items.favorites;
@@ -394,18 +394,19 @@ function loadFavorites() {
         if(!favorites || !favorites.length){
             actionsContent.append("<div class='col-xs-12 favorites-item'>You have no favorites yet. Add some!</div>");
         }
-        else{
+        else{            
             for(var i = 0; i < favorites.length; i++){
+                if(i % 6 == 0){
+                    actionsContent.append("<div class='row'>");
+                }
+
                 var link = favorites[i];
                 var id = link.split("/")[2].substring(0,3);
 
                 var data = getPostById(id);
                 if(data){
-                    if(i%6 == 0){
-                        actionsContentHtml += "<div class='row'>";
-                    }
                     actionsContentHtml = 
-                    "<div class='col-md-2 col-sm-3 col-xs-6 favorites-item'>" + 
+                    "<div class='col-md-2 col-sm-4 col-xs-6 favorites-item'>" + 
                         "<a href='" + link + "'>" + 
                             "<div class='col-sm-12'>" + 
                                 "<img class='img-responsive' src='" + data.poster_img + "'>" +
@@ -414,12 +415,13 @@ function loadFavorites() {
                             "<div class='col-sm-12 favorites-title'>" + data.title + "</div>" + 
                         "</a>" +
                     "</div>";
-
-                    if(i%6 == 0){
-                        actionsContentHtml += "</div>";
-                    }
                     actionsContent.append(actionsContentHtml);
                 }
+
+                if(i % 6 == 0){
+                    actionsContent.append("</div>");
+                }
+
             }
         }
     });
@@ -448,7 +450,7 @@ function getPostsByTag(tag){
     for(var i = 0; i < jsonVideos.length; i++){
         var vid = jsonVideos[i];
         var tags_string = vid.tags_string.toLowerCase();
-        //console.log(tags_string);
+        ////console.log(tags_string);
         if(tags_string && tags_string.indexOf(tag.toLowerCase()) > -1) videosIds.push(vid.id);
     }
     return videosIds;
@@ -473,22 +475,22 @@ function overrideLoadMore(){
 //Attempts to append videos to video listing page if videos are loaded
 function loadMoreFunc(previousIndex = 0){
     if(!currentVideosLoaded){
-        //console.log("waiting for videos to load");
+        ////console.log("waiting for videos to load");
         return false;
     }
     else{
-        //console.log("do we get here");
+        ////console.log("do we get here");
         var addToVideoScroll = 0;
         if(previousIndex > 0){
             addToVideoScroll = Math.trunc(previousIndex / 18) + 1;  
-            console.log(videoScrollPage + "::" + addToVideoScroll);
+            //console.log(videoScrollPage + "::" + addToVideoScroll);
             var currentVideosSection = currentVideos.slice(videoScrollPage * 18, addToVideoScroll * 18);
         } 
         else{
             var currentVideosSection = currentVideos.slice(videoScrollPage * 18, (videoScrollPage + 1) * 18);  
-            console.log("no previuos");          
+            //console.log("no previuos");          
         }
-        //console.log(currentVideosSection);
+        ////console.log(currentVideosSection);
         $(".item-container").append(generatePosts(currentVideosSection));
 
         if(videoScrollPage >= currentVideos.length / 18){

@@ -215,7 +215,7 @@ function loadMoreInitial(clicked = false){
     var loadMoreBtn = $(".load-more");
     if(loadMoreBtn.length || $(".loader").length){
         $(window).scroll(function() {
-            if(!clicked && $(window).scrollTop() + $(window).height() > $(document).height() -800){
+            if(!clicked && $(window).scrollTop() + $(window).height() > $(document).height() -1000){
                 $(window).unbind('scroll');
                 $(".load-more").click();
                 videoScrollPage++;
@@ -508,16 +508,17 @@ function loadFavorites() {
         }
         else{
             for(var i = 0; i < favorites.length; i++){
+                if(i % 6 == 0){
+                    actionsContent.append("<div class='row'>");
+                }
+
                 var link = favorites[i];
                 var id = link.split("/")[2].substring(0,3);
 
                 var data = getPostById(id);
                 if(data){
-                    if(i%6 == 0){
-                        actionsContentHtml += "<div class='row'>";
-                    }
                     actionsContentHtml = 
-                    "<div class='col-md-2 col-sm-3 col-xs-6 favorites-item'>" + 
+                    "<div class='col-md-2 col-sm-4 col-xs-6 favorites-item'>" + 
                         "<a href='" + link + "'>" + 
                             "<div class='col-sm-12'>" + 
                                 "<img class='img-responsive' src='" + data.poster_img + "'>" +
@@ -526,14 +527,17 @@ function loadFavorites() {
                             "<div class='col-sm-12 favorites-title'>" + data.title + "</div>" + 
                         "</a>" +
                     "</div>";
-
-                    if(i%6 == 0){
-                        actionsContentHtml += "</div>";
-                    }
                     actionsContent.append(actionsContentHtml);
                 }
+
+                if(i % 6 == 0){
+                    actionsContent.append("</div>");
+                }
             }
+            /*var maxHeight = $(actionsContent.children("row")[0]).height();
+            $("#actions-bar").css("max-height", maxHeight);*/
         }
+
     });
 }
 
