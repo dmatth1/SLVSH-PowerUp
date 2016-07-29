@@ -1,4 +1,11 @@
-console.log("called");
+/**
+	Created by Daniel Mattheiss, 07/14/16
+
+	Responsible for 2 functionalities: 
+		Add an alarm that fires off every N minutes -> if there is a new slvsh game, then send of a notification!
+		For all web requests that contains '/films', redirect appropriately to '/theater'
+
+**/
 
 const alarmName = "SLVSH New Post";
 const notificationId = "new_slvsh_game";
@@ -17,12 +24,7 @@ chrome.alarms.get(alarmName, function(alarm) {
 	        when: 1000,
 	        periodInMinutes: newGameCheckIntervalInMins
 	    }); 
-	    console.log("new alarm created");
 	}
-	else{
-		console.log("found alarm");
-	}
-	//chrome.alarms.clearAll();
 });
 
 //Check JSON API to see if the most recent game id stored in chrome.storage is out of date. If so, update storage and display a notification with options
@@ -31,28 +33,30 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
     	if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {
+
+    		//Get most recently found game id
 	    	let responseJson = JSON.parse(xmlhttp.responseText);
 	    	let newGameId = responseJson.posts[0].id;
 
-	    	//Determine if the game is new
+	    	//Determine if the game is newer than the cached most_recent_game
 		    chrome.storage.sync.get("most_recent_game", function(items) {
 		        let most_recent_game = items.most_recent_game;
 		        let jsonfile = {};
-		        most_recent_game = 1;
-		        //chrome.storage.sync.clear();
 
-		        if(!most_recent_game || most_recent_game === undefined || newGameId > most_recent_game){
+		        if(!most_recent_game || most_recent_game === undefined || newGameId > most_recent_game){	//Is newer or is not defined in the cache yet
+
+		        	//Set/update the most_recent_game in the cache
 		            jsonfile["most_recent_game"] = newGameId;
-		            console.log("new most recent game logged");
 		            chrome.storage.sync.set(jsonfile);
+
 		            if(!most_recent_game || most_recent_game === undefined){
-		            	console.log("first time the alarm is running");
-		          		return;		//If this is the first time the alarm runs, do not display new video notification
+		          		//If this is the first time the alarm runs, do not display new video notification
+		          		return;		
       				}
+
+      				//Set notification options
 			    	let newGameTitle = responseJson.posts[0].title;
 			    	newGameTitle = decodeEntities(newGameTitle);
-					console.log(newGameTitle);
-
 					var options = {
 					  iconUrl: notificationIcon,
 					  type: 'basic',
@@ -60,14 +64,16 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
 					  message: newGameTitle,
 					  priority: 1,
 					};
-					chrome.notifications.create(notificationId, options, function() { console.log('new notification created!'); });	
+
+					//Create notification that links to the game's url and autoplays
+					chrome.notifications.create(notificationId, options);	
 					chrome.notifications.onClicked.addListener(function(notificationId) {
 				        chrome.tabs.create({url: "http://www.slvsh.com/games/" + newGameId + "?autoplay=1"});
 				        chrome.notifications.clear(notificationId);
 				    });
 		        }
 		        else{
-		        	console.log("no new games");
+		        	//Not newer
 		        	return;
 		        }
 		    });    	
@@ -75,13 +81,13 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
     };
 
 
+    //Send the AJAX request
     xmlhttp.open("GET", gamesAPI, true);
     xmlhttp.send();
-
-    console.log("alarm called");
 });
 
 
+//Convert's any strange characters into english readable words - e.g. an accent over a letter
 let decodeEntities = (function() {
   // this prevents any overhead from creating the object each time
   let element = document.createElement('div');
