@@ -14,8 +14,10 @@ const gamesAPI = "http://www.slvsh.com/games.json?page=1&is_active=false";
 const notificationIcon = "images/slvsh-logo.png";
 const notificationTitle = "New SLVSH Game!";
 
-const newGameCheckIntervalInMins = 120;
+const newGameCheckIntervalInMins = 30;
 
+//Clear old alarm so the user is using the most recent alarm
+chrome.alarms.clear(alarmName);
 
 //Check to see if slvsh new post alarm exists. If not, create it with the options
 chrome.alarms.get(alarmName, function(alarm) {
@@ -27,8 +29,12 @@ chrome.alarms.get(alarmName, function(alarm) {
 	}
 });
 
+//On a ERR_NETWORK_IO_SUSPENDED we retry once - to allow the user to log in and then get their notification
+let retriedNewGameAlarm = false;
+
 //Check JSON API to see if the most recent game id stored in chrome.storage is out of date. If so, update storage and display a notification with options
-chrome.alarms.onAlarm.addListener(function (alarm) {
+chrome.alarms.onAlarm.addListener(newGameAlarm);
+function newGameAlarm(alarm) {
 
     var xmlhttp = new XMLHttpRequest();
     xmlhttp.onreadystatechange = function() {
@@ -41,7 +47,10 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
 	    	//Determine if the game is newer than the cached most_recent_game
 		    chrome.storage.sync.get("most_recent_game", function(items) {
 		        let most_recent_game = items.most_recent_game;
-		        let jsonfile = {};
+		        let jsonfile = {};	
+
+				console.debug("alarm called", most_recent_game, newGameId);
+
 
 		        if(!most_recent_game || most_recent_game === undefined || newGameId > most_recent_game){	//Is newer or is not defined in the cache yet
 
@@ -51,6 +60,7 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
 
 		            if(!most_recent_game || most_recent_game === undefined){
 		          		//If this is the first time the alarm runs, do not display new video notification
+		          		console.debug("first time")
 		          		return;		
       				}
 
@@ -76,7 +86,20 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
 		        	//Not newer
 		        	return;
 		        }
-		    });    	
+		    });  
+
+		    //Reset retry on successful ajax request
+		    retriedNewGameAlarm = false;  	
+    	}
+    	else if(xmlhttp.readyState == 4 && xmlhttp.status == 0){
+
+    		//Retry once if we get a ERR_NETWORK_IO_SUSPENDED - this is usually caused by chrome calling the alarm before the computer is unlocked, 
+    		// so we want to give the user time to unlock the computer so the alarm is called properly upon wake up
+    		console.debug(xmlhttp.readyState, xmlhttp.status);
+    		if(!retriedNewGameAlarm){
+	    		setTimeout(newGameAlarm, 30000);
+	    		retriedNewGameAlarm = true;
+    		}
     	}
     };
 
@@ -84,7 +107,7 @@ chrome.alarms.onAlarm.addListener(function (alarm) {
     //Send the AJAX request
     xmlhttp.open("GET", gamesAPI, true);
     xmlhttp.send();
-});
+}
 
 
 //Convert's any strange characters into english readable words - e.g. an accent over a letter
