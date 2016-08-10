@@ -26,6 +26,7 @@ chrome.alarms.get(alarmName, function(alarm) {
 	        when: 1000,
 	        periodInMinutes: newGameCheckIntervalInMins
 	    }); 
+	   	console.debug("new alarm created");
 	}
 });
 
@@ -57,6 +58,7 @@ function newGameAlarm(alarm) {
 
 		            if(!most_recent_game || most_recent_game === undefined){
 		          		//If this is the first time the alarm runs, do not display new video notification
+		          		console.debug("first time")
 		          		return;		
       				}
 
@@ -80,6 +82,7 @@ function newGameAlarm(alarm) {
 		        }
 		        else{
 		        	//Not newer
+		        	console.debug("no new one");
 		        	return;
 		        }
 		    });  
@@ -93,6 +96,7 @@ function newGameAlarm(alarm) {
     		// so we want to give the user time to unlock the computer so the alarm is called properly upon wake up
     		if(!retriedNewGameAlarm){
 	    		setTimeout(newGameAlarm, 60000);
+	    		console.debug("retrying in a minute");
 	    		retriedNewGameAlarm = true;
     		}
     	}

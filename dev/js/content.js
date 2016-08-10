@@ -266,17 +266,16 @@ var FavoriteBtn = {
 
     //Checks to see if is the item is a favorite by comparing stored paths with the item id
     isFavorite: function(items){
-        let favorites = items.favorites, favorite = false;
+        let favorites = items.favorites;
 
-        if(!favorites || favorites.length < 1) favorite = false;
+        if(favorites === undefined || !favorites || favorites.length < 1) return false;
         for(let i = 0; i < favorites.length; i++){
             if(favorites[i].indexOf(this.id) > -1){
-                favorite = true;
-                break;
+                return true;
             }
         }
 
-        return favorite;
+        return false;
     },
 
     //Styles the favorite button as a favorited item
