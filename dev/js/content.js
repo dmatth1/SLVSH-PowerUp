@@ -1,31 +1,22 @@
 /**
   * Created by Daniel Mattheiss, 06/04/2016
-  * Last updated 07/10/2016
+  * Last updated 08/09/2016
   * This Google chrome extension adds needed functionality to slvsh.com, a competition freeskiing business, website, and concept.
-  * Current features include infinite scroll, search with post caching, adding videos to favorites, 'films' url error fix for theater,
-  *  and RECENTLY_ADDED new SLVSH game notifications
+  * Current features include search with post caching, adding videos to favorites, and new SLVSH game notifications
   *
-  * Plans for the future include fixing filtering, (load all videos, not filtered videos), remembering scroll position on back button, 
-  *  queueing videos, tournament view for the SLVSH Cups, improved search and UI,
+  * Plans for the future include SLVSH stats page (using data from a game's json), queueing videos, tournament view for the SLVSH Cups, improved search and UI (include tricks?),
   *  playlist creation and sharing, comments sections, game ratings, and better video sorting
-  * Feel free to fork/contribute. If you are planning to work on one of the above (unimplemented) features, communicate with me so we don't have conflicting code.
   *
   * Licensed under the MIT License
   */
 
-let posts = [];
 
 $(function() {
-console.log("ayo");
 
 //Variables
+let posts = [];
 let searchResults = $("#search-results-powerup");
-var searchResultsMouseOver = false, favoritesBarMouseOver = false;
-var videoScrollPage = 1;
-var previousLink = "";
-var onVideosListingPage = false;
-var currentVideos = [];
-var currentVideosLoaded = false;
+let searchResultsMouseOver = false;
 
 
 //Checks the local chrome storage cache to see if we have already loaded all the posts json once
@@ -47,7 +38,6 @@ function getAllPosts(){
             //load posts from cache
             if(cached_posts_json && most_recent_post && found_recent_post === most_recent_post){
                 posts = cached_posts_json;
-                console.log("data loaded from cache");
             }
 
             //load posts from ajax and store posts in local storage
@@ -60,7 +50,6 @@ function getAllPosts(){
                         if(data.total_pages === data.current_page){
                             jsonfile.cached_posts_json = posts;
                             chrome.storage.local.set(jsonfile);
-                            console.log("data loaded from ajax");
                         }
                     });           
                 }
@@ -69,30 +58,9 @@ function getAllPosts(){
     });
 }
 
-//Binds the scroll event to clicking Load More - however, Load More is not instantaneous and we must continue binding until it is complete
-function bindInfiniteScroll(clicked = false){
-    console.log("initial loading");
-    var loadMoreBtn = $(".load-more");
-    if(loadMoreBtn.length || $(".loader").length){
-        $(window).scroll(function() {
-            if(!clicked && $(window).scrollTop() + $(window).height() > $(document).height() -1000){
-                $(window).unbind('scroll');
-                $(".load-more").click();
-                videoScrollPage++;
-                console.log("Video Scroll Page:" + videoScrollPage);   
-                setTimeout(bindInfiniteScroll(true), 250);
-            }
-            else if(clicked){
-                if(loadMoreBtn.text().toLowerCase().trim() == "load more"){  
-                    $(window).unbind('scroll');           
-                    setTimeout(bindInfiniteScroll(false), 250);
-                }
-                else{
-                    $(window).unbind('scroll');
-                    setTimeout(bindInfiniteScroll(true), 250);
-                }
-            }
-        });
+function autoplayFix(){
+    if($(".vjs-big-play-button").length && window.location.href.indexOf("autoplay=1") > -1){
+        $(".vjs-big-play-button").click();
     }
 }
 
@@ -217,22 +185,6 @@ function actionsBar() {
     });
 }
 
-function storeFavorites(){
-    $(".favorite-btn").click(function(){
-        let favorites = [], link = window.location.pathname;
-        chrome.storage.sync.get("favorites", function(items) {
-            favorites = items.favorites;
-            var jsonfile = {};
-            if(!favorites || !favorites.length) favorites = [link];
-            else favorites.push(link);
-            jsonfile["favorites"] = favorites;
-            chrome.storage.sync.set(jsonfile, function() {
-              notify("Favorited!");
-            });
-        });           
-    });
-}
-
 //Loads favorites for a user into the actions bar
 function loadFavorites() {
     var actionsContent = $("#actions-content");
@@ -289,13 +241,88 @@ function notify(message){
     notifyBar.css({top: top, left:0});
 }
 
-function bindFavorites(){
-    let favoriteStarHTML = "<span class='favorite-btn'>&#9734;</span>";
-    if($("#post-detail").length){   //We are on a video's page
-        $("h1").prepend(favoriteStarHTML);
-    $(".favorite-btn").mouseenter(function() { $(this).html("&#9733;");})
-    $(".favorite-btn").mouseleave(function() { $(this).html("&#9734;");})
-        storeFavorites();          
+//Actions for controlling the look, layout, and functionality of the favorite-a-video button
+var FavoriteBtn = {
+    btn: undefined,
+    id: 0,
+
+    //Creates a favorite button on a page -> should only be called if a video page, as there is no internal page validation
+    createBtn: function(id){
+        this.id = id;
+        $("h1").prepend("<span class='favorite-btn'></span>");
+        this.btn = $(".favorite-btn");
+
+        chrome.storage.sync.get("favorites", function(items) {
+            let favorite = this.isFavorite(items);
+
+            if(favorite){
+                this.styleAsFavorited();
+            }
+            else{
+                this.styleAsNonFavorited();
+            }
+        }.bind(this));
+    },
+
+    //Checks to see if is the item is a favorite by comparing stored paths with the item id
+    isFavorite: function(items){
+        let favorites = items.favorites, favorite = false;
+
+        if(!favorites || favorites.length < 1) favorite = false;
+        for(let i = 0; i < favorites.length; i++){
+            if(favorites[i].indexOf(this.id) > -1){
+                favorite = true;
+                break;
+            }
+        }
+
+        return favorite;
+    },
+
+    //Styles the favorite button as a favorited item
+    styleAsFavorited: function(){
+        this.btn.empty().html("&#9733;");
+        this.btn.off();
+        this.btn.click(function() {
+            this.removeFavorite();
+            this.styleAsNonFavorited();
+        }.bind(this));
+    },
+
+    //Styles the favorite button as an unfavorited item
+    styleAsNonFavorited: function(){
+        this.btn.empty().html("&#9734;");
+        this.btn.off();
+        this.btn.mouseenter(function() { $(this).html("&#9733;");})
+        this.btn.mouseleave(function() { $(this).html("&#9734;");})            
+        this.btn.click(function(){
+            this.storeFavorite();
+            this.styleAsFavorited();
+        }.bind(this));        
+    },
+
+    //Stores a favorite in chrome local storage for a user and notifies him/her
+    storeFavorite: function(){
+        let favorites = [], link = window.location.pathname, jsonfile = {};
+        chrome.storage.sync.get("favorites", function(items) {
+            favorites = items.favorites;
+            if(!favorites || !favorites.length) favorites = [link];
+            else favorites.push(link);
+            jsonfile["favorites"] = favorites;
+            chrome.storage.sync.set(jsonfile, function() {
+              notify("Favorited!");
+            });
+        });
+    },
+
+    //Removes a favorite from chrome local storage for a user
+    removeFavorite: function(){
+        let favorites = [], jsonfile = {};
+        chrome.storage.sync.get("favorites", function(items){
+            favorites = items.favorites.filter( val => val.indexOf(this.id.toString()) === -1);
+            jsonfile["favorites"] = favorites;
+            chrome.storage.sync.set(jsonfile);
+        }.bind(this));
     }
 }
 
@@ -303,14 +330,37 @@ function getPostById(id){
     return posts.filter((obj) => obj.id == id)[0];
 }
 
+//Returns a promise that resolves to the id associated with the current pathname
+function getIdFromUrlPromise(){
+    let url = "http://www.slvsh.com" + window.location.pathname + ".json";
+    let p = new Promise(function(resolve, reject){
+        $.get(url)
+        .then(function(data) {   
+            if(data){
+                resolve(data.id);
+            }
+            else{
+                reject();
+            }
+        });     
+    });
+
+    return p;
+}
+
 
 //Wrapper function to initialize SLVSH PowerUp
 function init() {
     getAllPosts();
-    bindInfiniteScroll();      //Infinite Scroll
     searchBar();            //Add search bar and associated elements
-    bindFavorites();        //Bind Favoriting videos hover function
     actionsBar();           //Add actions bar for viewing favorites
+    //autoplayFix();
+
+    //Binds the favorite button on video pages
+    if($("#post-detail").length){   //We are on a video's page  
+        let p = getIdFromUrlPromise();
+        p.then((id) => FavoriteBtn.createBtn(id));
+    }
 }
 
 init();

@@ -49,9 +49,6 @@ function newGameAlarm(alarm) {
 		        let most_recent_game = items.most_recent_game;
 		        let jsonfile = {};	
 
-				console.debug("alarm called", most_recent_game, newGameId);
-
-
 		        if(!most_recent_game || most_recent_game === undefined || newGameId > most_recent_game){	//Is newer or is not defined in the cache yet
 
 		        	//Set/update the most_recent_game in the cache
@@ -60,7 +57,6 @@ function newGameAlarm(alarm) {
 
 		            if(!most_recent_game || most_recent_game === undefined){
 		          		//If this is the first time the alarm runs, do not display new video notification
-		          		console.debug("first time")
 		          		return;		
       				}
 
@@ -93,11 +89,10 @@ function newGameAlarm(alarm) {
     	}
     	else if(xmlhttp.readyState == 4 && xmlhttp.status == 0){
 
-    		//Retry once if we get a ERR_NETWORK_IO_SUSPENDED - this is usually caused by chrome calling the alarm before the computer is unlocked, 
+    		//Retry ONCE if we get a ERR_NETWORK_IO_SUSPENDED - this is usually caused by chrome calling the alarm before the computer is unlocked, 
     		// so we want to give the user time to unlock the computer so the alarm is called properly upon wake up
-    		console.debug(xmlhttp.readyState, xmlhttp.status);
     		if(!retriedNewGameAlarm){
-	    		setTimeout(newGameAlarm, 30000);
+	    		setTimeout(newGameAlarm, 60000);
 	    		retriedNewGameAlarm = true;
     		}
     	}
