@@ -108,7 +108,6 @@ function newGameAlarm(alarm) {
     xmlhttp.send();
 }
 
-
 //Convert's any strange characters into english readable words - e.g. an accent over a letter
 let decodeEntities = (function() {
   // this prevents any overhead from creating the object each time

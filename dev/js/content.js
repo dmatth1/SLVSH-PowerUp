@@ -4,7 +4,8 @@
   * This Google chrome extension adds needed functionality to slvsh.com, a competition freeskiing business, website, and concept.
   * Current features include search with post caching, adding videos to favorites, and new SLVSH game notifications
   *
-  * Plans for the future include SLVSH stats page (using data from a game's json), queueing videos, tournament view for the SLVSH Cups, improved search and UI (include tricks?),
+  * Plans for the future include SLVSH stats page (using data from a game's json), Notification options (none, games, theater, games+ theater),
+  *  queueing videos, tournament view for the SLVSH Cups, improved search and UI (include tricks?),
   *  playlist creation and sharing, comments sections, game ratings, and better video sorting
   *
   * Licensed under the MIT License
