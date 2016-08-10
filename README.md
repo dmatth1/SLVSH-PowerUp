@@ -5,16 +5,7 @@
 
 Google Chrome extension that adds much needed functionality to slvsh.com, a competition-based freeskiing website.
 
-Current Features:
---Favoriting Videos
---Search (now with a cache!)
---SLVSH New Game Chrome Notifications
+Current Features: Favoriting Videos, Search (now with a cache!), SLVSH New Game Chrome Notifications
 
 
-TODO Features:
---Notification options
---SLVSH Stats
---Queueing videos
---SLVSH Cups tournament views
---Comments/ratings (put our SLVSH accounts to good use)
---More???
+TODO Features: Notification options, SLVSH Stats, Queueing videos, SLVSH Cups tournament views, Comments/ratings (put our SLVSH accounts to good use), More???
