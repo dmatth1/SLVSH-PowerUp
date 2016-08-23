@@ -11,6 +11,8 @@
   * Licensed under the MIT License
   */
 
+let statsUrlParam = "?stats=true";
+
 
 $(function() {
 
@@ -348,21 +350,278 @@ function getIdFromUrlPromise(){
     return p;
 }
 
+    //Add the Stats link to the slvsh navbar and define its onclick
+    let slvshStatsNavLink = function(){
+        let navbar = $(".left.nav.navbar-nav");
+        navbar.append("<li><a href='/stats'>Stats</a></li>");
+        let statsLink = navbar.children().last().children()[0];
+        $(statsLink).click(function(e){
+            e.preventDefault();
+            pushWindowState();
+            loadStatsPage();
+        });
 
-//Wrapper function to initialize SLVSH PowerUp
-function init() {
-    getAllPosts();
-    searchBar();            //Add search bar and associated elements
-    actionsBar();           //Add actions bar for viewing favorites
-    //autoplayFix();
+    };
 
-    //Binds the favorite button on video pages
-    if($("#post-detail").length){   //We are on a video's page  
-        let p = getIdFromUrlPromise();
-        p.then((id) => FavoriteBtn.createBtn(id));
+    //Replace html with stats page html while waiting for posts to be loaded
+    var loadStatsPageTries = 0;
+    let loadStatsPage = function(){
+        console.log("entering");
+        if(posts.length < 10){      //We wait for posts to be loaded for at most 5 seconds
+            loadStatsPageTries++;
+            if(loadStatsPageTries < 50){
+                setTimeout(loadStatsPage, 500);
+                return;
+            }
+            else return;
+        }
+
+        console.log("hello");
+        let statsLink = $(".left.nav.navbar-nav").children().last().children()[0];
+        $(statsLink).parent().attr("class", "current");
+        $(statsLink).parent().siblings().attr("class", "");
+
+        let pageContent = $("#page-content");
+        pageContent.empty();
+
+        //Store player specific results in direct access array
+        let players = [];
+        for(let i = 0; i < posts.length; i++){
+            let post = posts[i];
+            if(post.game_type === "S.L.V.S.H."){
+                if(players[post.loser_id] !== undefined){         //Player exists - store game under player
+                    let player = players[post.loser_id];
+                    player.games.push(post);
+                    player.losses.push(post);
+                }
+                else{
+                    let player = post.loser;
+                    player.games = [post];
+                    player.wins = [];
+                    player.losses = [post];
+                    players[post.loser_id] = player;
+                }
+                if(players[post.winner_id]){         //Player exists - store game under player
+                    let player = players[post.winner_id];
+                    player.games.push(post);
+                    player.wins.push(post);
+                }
+                else{
+                    let player = post.winner;
+                    player.games = [post];
+                    player.wins = [post];
+                    player.losses = [];
+                    players[post.winner_id] = player;
+                }
+            }
+        }
+
+        //Now remove all null from array - we will not be performing direct, targeted accesses any more (if we do, comment this next line!)
+        //players = players.filter(function(n){ return n !== undefined });
+
+        //Define stats filters
+        let statsFilters = "<div id='posts-filters' class='container'>" +
+            "<div class='inner col-xs-12'>" +
+            "<ul class='hidden-xs'>" +
+            "<li><a class='stats-filter' id='stats-filter-total-wins' href='#total-wins'>Total Wins</a></li>" +
+            "<li><a href='#winlossratio' class='stats-filter' id='stats-filter-win-percentage'>Win Percentage</a></li>" +
+            "<li><a href='#powerrankings' class='stats-filter' id='stats-filter-power-rankings'>Power Rankings</a></li>" +
+            "</ul>" +
+            "</div>" +
+            "</div>";
+
+        pageContent.append("<article id='home-v2'><div class = 'container'><div class='row stats-row'>" + statsFilters + "<div id='stats-body'></div></div></div></article>");
+        let container = $("#home-v2 > .container > .row.stats-row > #stats-body");
+
+        //Define each filter's click
+        $(".stats-filter").click(function(){
+            $(".stats-filter").removeClass("current");
+            $(this).addClass("current");
+            container.empty();
+        });
+        $("#stats-filter-total-wins").click(function(){
+            showStatsByTotalWins(container, players);
+        });
+        $("#stats-filter-win-percentage").click(function(){
+            showStatsByWinPercentage(container, players);
+        });
+        $("#stats-filter-power-rankings").click(function(){
+            showsStatsByPowerRankings(container, players);
+        });
+
+        //Default
+        $("#stats-filter-total-wins").click();
+
+        //Back button functionality
+        document.title = "SLVSH Stats";
+        pushWindowState("/stats");
+
+    };
+
+    let showsStatsByPowerRankings = function(container, players){
+        if(players[0].power_ranking === undefined) calculatePowerRankings(players);
+
+        let playersByPowerRanking = players.sort(function(a,b){
+            if(a===undefined) return 1;
+            if(b===undefined) return -1;
+
+            if(a.power_ranking > b.power_ranking) return -1;
+            if(b.power_ranking > a.power_ranking) return 1;
+            if(a.wins > b.wins) return -1;
+            if(b.wins > a.wins) return 1;
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        });
+
+        for(let i = 0; i < playersByPowerRanking.length; i++) createPlayerStatsPanel(container, playersByPowerRanking[i], i);
+
+        //Calculate and assigns a power ranking foreach player
+        function calculatePowerRankings(players){
+            for(let i = 0; i < players.length; i++){
+                let player = players[i];
+                if(player === undefined) continue;
+
+                let player_power_ranking = (player.wins.length * 2) - player.losses.length;
+                for(let j = 0; j < player.wins.length; j++){
+                    let loser = players[player.wins[j].loser_id];
+                    if(loser === undefined) continue;
+
+                    //If loser is strong, increase player power ranking by loser win/loss difference
+                    if(loser.wins.length > loser.losses.length) player_power_ranking += loser.wins.length - loser.losses.length;
+                }
+                for(let j = 0; j < player.losses.length; j++){
+                    let winner = players[player.losses[j].winner_id];
+                    if(winner === undefined) continue;
+
+                    //If winner is weak, decrease player power ranking by winner win/loss difference
+                    if(winner.wins.length < winner.losses.length) player_power_ranking += winner.wins.length - winner.losses.length;
+                }
+                player.power_ranking = player_power_ranking;
+            }
+        }
+    };
+
+    let showStatsByWinPercentage = function(container, players){
+        let playersByWinPercentage = players.sort(function(a,b){
+            if(a === undefined) return 1;
+            if(b === undefined) return -1;
+
+            let aPercentage = a.wins.length / (a.wins.length + a.losses.length), bPercentage = b.wins.length / (b.wins.length + b.losses.length);
+            if(aPercentage > bPercentage) return -1;
+            if(bPercentage > aPercentage) return 1;
+            if(a.wins > b.wins) return -1;
+            if(b.wins > a.wins) return 1;
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        });
+
+        for(let i = 0; i < playersByWinPercentage.length; i++) createPlayerStatsPanel(container, playersByWinPercentage[i], i);
+    };
+
+    let showStatsByTotalWins = function(container, players){
+        //Sort players by wins
+        let playersByWins = players.sort(function(a, b){
+            if(a === undefined) return 1;
+            if(b === undefined) return -1;
+
+            if(a.wins > b.wins) return -1;
+            if(b.wins > a.wins) return 1;
+            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
+        });
+
+        for(let i = 0; i < playersByWins.length; i++){
+            let player = playersByWins[i];
+            createPlayerStatsPanel(container, player, i);
+        }
+    };
+
+    let createPlayerStatsPanel = function(container, player, i){
+        if(player === undefined) return;
+
+        let playerIdForAvatar = player.id.toString();
+        while(playerIdForAvatar.length < 3){
+            playerIdForAvatar = "0" + playerIdForAvatar;
+        }
+
+        //Create panel string for each player
+        let playerStr = "<div class = 'panel panel-primary'>" +
+            "<div class='panel-body'>" +
+            "<div class='col-lg-2'>" +
+            "<div class='avatar-header'>" + player.name + "</div>" +
+            "<img class = 'avatar' src='http://slvsh_prod.s3.amazonaws.com/riders/avatars/000/000/" + playerIdForAvatar + "/large/" + player.avatar_file_name + "'/>" +
+            "</div><div class='col-lg-1'></div>" +
+            "<div class='col-lg-4'>" +
+            "<b>" + player.wins.length + " Wins</b>";
+
+        let winsStr = "", lossesStr = "";
+        for(let j = 0; j < player.wins.length; j++){
+            let game = player.wins[j];
+            winsStr += "<div><a href='" + game.href + "'>" + game.title + "</a></div>";
+        }
+
+        playerStr += winsStr;
+        playerStr += "</div><div class='col-lg-4'><b>" + player.losses.length + " Losses</b>";
+
+        for(let j = 0; j < player.losses.length; j++){
+            let game = player.losses[j];
+            lossesStr += "<div><a href='" + game.href + "'>" + game.title + "</a></div>";
+        }
+
+        playerStr += lossesStr + "</div>";
+
+        playerStr += "<div class='col-lg-1'>";
+        playerStr += "<div class='col-lg-12'><div class='pull-right stats-rank-number'><div class='padding-10'>" + (i+1) + "</div></div></div>";
+
+        let winToLossRatio = (player.wins.length / (player.wins.length + player.losses.length)).toFixed(2) * 100;
+        playerStr += "<div class='col-lg-12'><div class='pull-right'><b>W/L: </b>" + winToLossRatio + "%</div></div>";
+
+        playerStr += "</div>";
+        playerStr += "</div>" +
+            "</div>";
+
+        let playerPanel = $(playerStr);
+        container.append(playerPanel);
+    };
+
+    //For back button funct.
+    let pushWindowState = function(pathname) {
+        if(!pathname) pathname = window.location.pathname;
+        window.history.pushState({
+            "html": document.getElementById("page-content").innerHTML,
+            "pageTitle": document.title
+        }, "", pathname);
+    };
+    window.onpopstate = function(e){
+        if(e.state){
+            document.getElementById("page-content").innerHTML = e.state.html;
+            document.title = e.state.pageTitle;
+        }
+    };
+
+    //Wrapper function to initialize SLVSH PowerUp
+    function init() {
+        getAllPosts();
+        searchBar();            //Add search bar and associated elements
+        actionsBar();           //Add actions bar for viewing favorites
+        slvshStatsNavLink();
+        //autoplayFix();
+
+        //Binds the favorite button on video pages
+        if($("#post-detail").length){   //We are on a video's page
+            let p = getIdFromUrlPromise();
+            p.then((id) => FavoriteBtn.createBtn(id));
+        }
     }
-}
 
-init();
+    init();
+
+    //Refresh initiated due to param url, redirect
+    if(window.location.href.toLowerCase().indexOf(statsUrlParam) > -1){
+        console.log("yay redirect to stats");
+        loadStatsPage();
+    }
 
 });
+
+//Refreshed, send to home page with param url
+if(window.location.pathname.toLowerCase() === "/stats"){
+    window.location.href = window.location.origin + statsUrlParam;
+}
