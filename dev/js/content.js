@@ -11,8 +11,10 @@
   * Licensed under the MIT License
   */
 
-let statsUrlParam = "?stats=true";
+const statsUrlParam = "?stats=true";
 
+console.log = function() {};
+console.debug = function() {};
 
 $(function() {
 
@@ -20,6 +22,7 @@ $(function() {
 let posts = [];
 let searchResults = $("#search-results-powerup");
 let searchResultsMouseOver = false;
+let getAllPostsPromise;
 
 
 //Checks the local chrome storage cache to see if we have already loaded all the posts json once
@@ -29,36 +32,44 @@ let searchResultsMouseOver = false;
 //Also, since chrome sync storage doesn't have space to store all returned data - we can only use chrome local storage
 function getAllPosts(){
     const postsUrl = "http://www.slvsh.com/posts.json";
+    let p = new Promise(function(resolve, reject) {
 
-    //Two ajax request timelines -> 1st to get total pages and 2nd to batch send for all remaining pages
-    $.get(postsUrl, { page: 1, is_active: !0})
-    .then(function(data) {
-        chrome.storage.local.get(["cached_posts_json", "most_recent_post"], function(items) {
-            const cached_posts_json = items.cached_posts_json;
-            const most_recent_post = items.most_recent_post;
-            const found_recent_post = data.posts[0].id;
+        //Two ajax request timelines -> 1st to get total pages and 2nd to batch send for all remaining pages
+        $.get(postsUrl, {page: 1, is_active: !0})
+            .then(function (data) {
+                chrome.storage.local.get(["cached_posts_json", "most_recent_post"], function (items) {
+                    const cached_posts_json = items.cached_posts_json;
+                    const most_recent_post = items.most_recent_post;
+                    const found_recent_post = data.posts[0].id;
 
-            //load posts from cache
-            if(cached_posts_json && most_recent_post && found_recent_post === most_recent_post){
-                posts = cached_posts_json;
-            }
+                    //load posts from cache
+                    if (cached_posts_json && most_recent_post && found_recent_post === most_recent_post || !data) {
+                        posts = cached_posts_json;
+                        resolve();
+                    }
 
-            //load posts from ajax and store posts in local storage
-            else{
-                let jsonfile = { most_recent_post: found_recent_post};
-                posts = data.posts;
-                for(let i = 2; i <= data.total_pages; i++){
-                    $.get(postsUrl, { page: i, is_active: !0}).then(function(data){
-                        posts = posts.concat(data.posts);
-                        if(data.total_pages === data.current_page){
-                            jsonfile.cached_posts_json = posts;
-                            chrome.storage.local.set(jsonfile);
+                    //load posts from ajax and store posts in local storage
+                    else {
+                        let jsonfile = {most_recent_post: found_recent_post};
+                        posts = data.posts;
+                        for (let i = 2; i <= data.total_pages; i++) {
+                            $.get(postsUrl, {page: i, is_active: !0}).then(function (data) {
+                                if(!data) reject();
+
+                                posts = posts.concat(data.posts);
+                                if (data.total_pages === data.current_page) {
+                                    jsonfile.cached_posts_json = posts;
+                                    chrome.storage.local.set(jsonfile);
+                                    resolve();
+                                }
+                            });
                         }
-                    });           
-                }
-            }
-        });
+                    }
+                });
+            });
     });
+
+    return p;
 }
 
 function autoplayFix(){
@@ -367,99 +378,108 @@ function getIdFromUrlPromise(){
     var loadStatsPageTries = 0;
     let loadStatsPage = function(){
         console.log("entering");
-        if(posts.length < 10){      //We wait for posts to be loaded for at most 5 seconds
-            loadStatsPageTries++;
-            if(loadStatsPageTries < 50){
-                setTimeout(loadStatsPage, 500);
-                return;
-            }
-            else return;
-        }
-
-        console.log("hello");
         let statsLink = $(".left.nav.navbar-nav").children().last().children()[0];
         $(statsLink).parent().attr("class", "current");
         $(statsLink).parent().siblings().attr("class", "");
 
         let pageContent = $("#page-content");
         pageContent.empty();
-
-        //Store player specific results in direct access array
-        let players = [];
-        for(let i = 0; i < posts.length; i++){
-            let post = posts[i];
-            if(post.game_type === "S.L.V.S.H."){
-                if(players[post.loser_id] !== undefined){         //Player exists - store game under player
-                    let player = players[post.loser_id];
-                    player.games.push(post);
-                    player.losses.push(post);
-                }
-                else{
-                    let player = post.loser;
-                    player.games = [post];
-                    player.wins = [];
-                    player.losses = [post];
-                    players[post.loser_id] = player;
-                }
-                if(players[post.winner_id]){         //Player exists - store game under player
-                    let player = players[post.winner_id];
-                    player.games.push(post);
-                    player.wins.push(post);
-                }
-                else{
-                    let player = post.winner;
-                    player.games = [post];
-                    player.wins = [post];
-                    player.losses = [];
-                    players[post.winner_id] = player;
-                }
-            }
-        }
-
-        //Now remove all null from array - we will not be performing direct, targeted accesses any more (if we do, comment this next line!)
-        //players = players.filter(function(n){ return n !== undefined });
-
-        //Define stats filters
-        let statsFilters = "<div id='posts-filters' class='container'>" +
-            "<div class='inner col-xs-12'>" +
-            "<ul class='hidden-xs'>" +
-            "<li><a class='stats-filter' id='stats-filter-total-wins' href='#total-wins'>Total Wins</a></li>" +
-            "<li><a href='#winlossratio' class='stats-filter' id='stats-filter-win-percentage'>Win Percentage</a></li>" +
-            "<li><a href='#powerrankings' class='stats-filter' id='stats-filter-power-rankings'>Power Rankings</a></li>" +
-            "</ul>" +
-            "</div>" +
+        const loadingHTML = "<div class='sampleContainer'>" +
+            "<div class='loader'>" + 
+            "<span class='dot dot_1'>" + "</span>" + 
+            "<span class='dot dot_2'>" + "</span>" + 
+            "<span class='dot dot_3'>" + "</span>" + 
+            "<span class='dot dot_4'>" + "</span>" + 
+            "</div>" + 
             "</div>";
 
-        pageContent.append("<article id='home-v2'><div class = 'container'><div class='row stats-row'>" + statsFilters + "<div id='stats-body'></div></div></div></article>");
-        let container = $("#home-v2 > .container > .row.stats-row > #stats-body");
+        pageContent.html(loadingHTML);
 
-        //Define each filter's click
-        $(".stats-filter").click(function(){
-            $(".stats-filter").removeClass("current");
-            $(this).addClass("current");
-            container.empty();
-        });
-        $("#stats-filter-total-wins").click(function(){
-            showStatsByTotalWins(container, players);
-        });
-        $("#stats-filter-win-percentage").click(function(){
-            showStatsByWinPercentage(container, players);
-        });
-        $("#stats-filter-power-rankings").click(function(){
-            showsStatsByPowerRankings(container, players);
-        });
+        getAllPostsPromise.then(function(){
+            console.log("hello");
+            pageContent.empty();
 
-        //Default
-        $("#stats-filter-total-wins").click();
+            //Store player specific results in direct access array
+            let players = [];
+            for(let i = 0; i < posts.length; i++){
+                let post = posts[i];
+                if(post.game_type === "S.L.V.S.H."){
+                    if(players[post.loser_id] !== undefined){         //Player exists - store game under player
+                        let player = players[post.loser_id];
+                        player.games.push(post);
+                        player.losses.push(post);
+                    }
+                    else{
+                        let player = post.loser;
+                        player.games = [post];
+                        player.wins = [];
+                        player.losses = [post];
+                        players[post.loser_id] = player;
+                    }
+                    if(players[post.winner_id]){         //Player exists - store game under player
+                        let player = players[post.winner_id];
+                        player.games.push(post);
+                        player.wins.push(post);
+                    }
+                    else{
+                        let player = post.winner;
+                        player.games = [post];
+                        player.wins = [post];
+                        player.losses = [];
+                        players[post.winner_id] = player;
+                    }
+                }
+            }
 
-        //Back button functionality
-        document.title = "SLVSH Stats";
-        pushWindowState("/stats");
+            //Now remove all null from array - we will not be performing direct, targeted accesses any more (if we do, comment this next line!)
+            //players = players.filter(function(n){ return n !== undefined });
 
+            //Define stats filters
+            let statsFilters = "<div id='posts-filters' class='container'>" +
+                "<div class='inner col-xs-12'>" +
+                "<ul class='hidden-xs'>" +
+                "<li><a class='stats-filter' id='stats-filter-total-wins' href='#total-wins'>Total Wins</a></li>" +
+                "<li><a href='#winlossratio' class='stats-filter' id='stats-filter-win-percentage'>Win Percentage</a></li>" +
+                "<li><a href='#powerrankings' class='stats-filter' id='stats-filter-power-rankings'>Power Rankings</a></li>" +
+                "</ul>" +
+                "</div>" +
+                "</div>";
+
+            pageContent.append("<article id='home-v2'><div class = 'container'><div class='row stats-row'>" + statsFilters + "<div id='stats-body'></div></div></div></article>");
+            let container = $("#home-v2 > .container > .row.stats-row > #stats-body");
+
+            //Define each filter's click
+            $(".stats-filter").click(function(){
+                $(".stats-filter").removeClass("current");
+                $(this).addClass("current");
+                container.empty();
+                container.fadeOut(250);
+            });
+            $("#stats-filter-total-wins").click(function(){
+                showStatsByTotalWins(container, players.slice());
+                container.fadeIn(250);
+            });
+            $("#stats-filter-win-percentage").click(function(){
+                showStatsByWinPercentage(container, players.slice());
+                container.fadeIn(250);
+            });
+            $("#stats-filter-power-rankings").click(function(){
+                showsStatsByPowerRankings(container, players.slice());
+                container.fadeIn(250);
+            });
+
+            //Default
+            $("#stats-filter-total-wins").click();
+
+            //Back button functionality
+            document.title = "SLVSH Stats";
+            pushWindowState("/stats");
+        });
     };
 
     let showsStatsByPowerRankings = function(container, players){
-        if(players[0].power_ranking === undefined) calculatePowerRankings(players);
+
+        if(players[5] === undefined || players[5].power_ranking === undefined) calculatePowerRankings(players);
 
         let playersByPowerRanking = players.sort(function(a,b){
             if(a===undefined) return 1;
@@ -480,7 +500,7 @@ function getIdFromUrlPromise(){
                 let player = players[i];
                 if(player === undefined) continue;
 
-                let player_power_ranking = (player.wins.length * 2) - player.losses.length;
+                let player_power_ranking = player.wins.length - player.losses.length;
                 for(let j = 0; j < player.wins.length; j++){
                     let loser = players[player.wins[j].loser_id];
                     if(loser === undefined) continue;
@@ -497,6 +517,8 @@ function getIdFromUrlPromise(){
                 }
                 player.power_ranking = player_power_ranking;
             }
+
+            return players;
         }
     };
 
@@ -598,7 +620,7 @@ function getIdFromUrlPromise(){
 
     //Wrapper function to initialize SLVSH PowerUp
     function init() {
-        getAllPosts();
+        getAllPostsPromise = getAllPosts();
         searchBar();            //Add search bar and associated elements
         actionsBar();           //Add actions bar for viewing favorites
         slvshStatsNavLink();
