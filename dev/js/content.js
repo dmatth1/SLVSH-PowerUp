@@ -13,8 +13,8 @@
 
 const statsUrlParam = "?stats=true";
 
-console.log = function() {};
-console.debug = function() {};
+//console.log = function() {};
+//console.debug = function() {};
 
 $(function() {
 
@@ -54,8 +54,6 @@ function getAllPosts(){
                         posts = data.posts;
                         for (let i = 2; i <= data.total_pages; i++) {
                             $.get(postsUrl, {page: i, is_active: !0}).then(function (data) {
-                                if(!data) reject();
-
                                 posts = posts.concat(data.posts);
                                 if (data.total_pages === data.current_page) {
                                     jsonfile.cached_posts_json = posts;
@@ -453,7 +451,7 @@ function getIdFromUrlPromise(){
                 $(".stats-filter").removeClass("current");
                 $(this).addClass("current");
                 container.empty();
-                container.fadeOut(250);
+                container.hide();
             });
             $("#stats-filter-total-wins").click(function(){
                 showStatsByTotalWins(container, players.slice());
@@ -464,6 +462,7 @@ function getIdFromUrlPromise(){
                 container.fadeIn(250);
             });
             $("#stats-filter-power-rankings").click(function(){
+                container.append("Power Rankings calculated by the weight of each players' wins.")
                 showsStatsByPowerRankings(container, players.slice());
                 container.fadeIn(250);
             });
@@ -518,8 +517,41 @@ function getIdFromUrlPromise(){
                 player.power_ranking = player_power_ranking;
             }
 
+            //Do it twice to clean up from the first time
+            for(let i = 0; i < 5; i++) players = iterateThroughPowerRankings(players);
+
             return players;
         }
+    };
+
+    let iterateThroughPowerRankings = function(players){
+        //Using each players' power rankings, calculate a second, more precise ranking
+        let players_power_rankings = [];
+        for(let i = 0; i < players.length; i++){
+            let player = players[i];
+            if(player === undefined) continue;
+
+            players_power_rankings[i] = player.power_ranking;
+            for(let j = 0; j < player.wins.length; j++){
+                let loser = players[player.wins[j].loser_id];
+                if(loser === undefined) continue;
+
+                //If loser is strong, increase player power ranking by loser/player power_ranking difference
+                if(loser.power_ranking > player.power_ranking) players_power_rankings[i] += (loser.power_ranking - player.power_ranking) / 2;
+            }
+            for(let j = 0; j < player.losses.length; j++){
+                let winner = players[player.losses[j].winner_id];
+                if(winner === undefined) continue;
+
+                //If winner is weak, decrease player power ranking by winner/player power_ranking difference
+                if(winner.power_ranking < player.power_ranking) players_power_rankings[i] += (winner.power_ranking - player.power_ranking) / 2;
+            }
+        }
+        for(let i = 0; i < players.length; i++) {
+            if(players[i] !== undefined) players[i].power_ranking = players_power_rankings[i];
+        }
+
+        return players;
     };
 
     let showStatsByWinPercentage = function(container, players){
@@ -566,11 +598,12 @@ function getIdFromUrlPromise(){
         //Create panel string for each player
         let playerStr = "<div class = 'panel panel-primary'>" +
             "<div class='panel-body'>" +
-            "<div class='col-lg-2'>" +
+            "<div class='row'>" +
+            "<div class='col-xs-12 col-sm-2 col-md-2'>" +
             "<div class='avatar-header'>" + player.name + "</div>" +
-            "<img class = 'avatar' src='http://slvsh_prod.s3.amazonaws.com/riders/avatars/000/000/" + playerIdForAvatar + "/large/" + player.avatar_file_name + "'/>" +
-            "</div><div class='col-lg-1'></div>" +
-            "<div class='col-lg-4'>" +
+            "<img class = 'img-responsive avatar' src='http://slvsh_prod.s3.amazonaws.com/riders/avatars/000/000/" + playerIdForAvatar + "/large/" + player.avatar_file_name + "'/>" +
+            "</div><div class='col-sm-1 col-md-1'></div>" +
+            "<div class='col-xs-5 col-sm-4 col-md-4'>" +
             "<b>" + player.wins.length + " Wins</b>";
 
         let winsStr = "", lossesStr = "";
@@ -580,7 +613,7 @@ function getIdFromUrlPromise(){
         }
 
         playerStr += winsStr;
-        playerStr += "</div><div class='col-lg-4'><b>" + player.losses.length + " Losses</b>";
+        playerStr += "</div><div class='col-xs-5 col-sm-4 col-md-4'><b>" + player.losses.length + " Losses</b>";
 
         for(let j = 0; j < player.losses.length; j++){
             let game = player.losses[j];
@@ -589,14 +622,14 @@ function getIdFromUrlPromise(){
 
         playerStr += lossesStr + "</div>";
 
-        playerStr += "<div class='col-lg-1'>";
-        playerStr += "<div class='col-lg-12'><div class='pull-right stats-rank-number'><div class='padding-10'>" + (i+1) + "</div></div></div>";
+        playerStr += "<div class='col-xs-2 col-sm-1 col-md-1'>";
+        playerStr += "<div class='col-xs-12 col-sm-12 col-md-12'><div class='pull-right stats-rank-number'><div class='padding-10'>" + (i+1) + "</div></div></div>";
 
         let winToLossRatio = (player.wins.length / (player.wins.length + player.losses.length)).toFixed(2) * 100;
-        playerStr += "<div class='col-lg-12'><div class='pull-right'><b>W/L: </b>" + winToLossRatio + "%</div></div>";
+        playerStr += "<div class='col-xs-12 col-sm-12 col-md-12'><div class='pull-right'><b>W/L: </b>" + winToLossRatio + "%</div></div>";
 
         playerStr += "</div>";
-        playerStr += "</div>" +
+        playerStr += "</div></div>" +
             "</div>";
 
         let playerPanel = $(playerStr);
