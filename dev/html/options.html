@@ -1,30 +1,23 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>My Test Extension Options</title>
-  <style>
-    body: { padding: 10px; }
-  </style>
+    <title>SLVSH PowerUp Options</title>
+    <style>
+        body: { padding: 10px; }
+    </style>
 </head>
 
 <body>
-  Favorite color:
-  <select id="color">
-   <option value="red">red</option>
-   <option value="green">green</option>
-   <option value="blue">blue</option>
-   <option value="yellow">yellow</option>
-  </select>
+I want to receive notifications:
+<select id="notifications">
+    <option value="new_games">New SLVSH Games</option>
+    <option value="all_content">All SLVSH Content</option>
+    <option value="never">Never</option>
+</select>
 
-  <label>
-    <input type="checkbox" id="like">
-    I like colors.
-  </label>
+<div id="status"></div>
+<button id="save">Save</button>
 
-  <div id="status"></div>
-  <button id="save">Save</button>
-
-  <script>console.log("start");</script>
-  <script src="../js/options.js"></script>
+<script src="../js/options.js"></script>
 </body>
 </html>
