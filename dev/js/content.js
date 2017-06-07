@@ -401,7 +401,15 @@ function getIdFromUrlPromise(){
             let players = [];
             for(let i = 0; i < posts.length; i++){
                 let post = posts[i];
+
                 if(post.game_type === "S.L.V.S.H."){
+
+                    //Null check - this happened once so this is a quickfix
+                    if(post.loser_id == null || post.winner_id == null)
+                    {
+                        continue;
+                    }
+
                     if(players[post.loser_id] !== undefined){         //Player exists - store game under player
                         let player = players[post.loser_id];
                         player.games.push(post);
@@ -505,20 +513,21 @@ function getIdFromUrlPromise(){
                     if(loser === undefined) continue;
 
                     //If loser is strong, increase player power ranking by loser win/loss difference
-                    if(loser.wins.length > loser.losses.length) player_power_ranking += loser.wins.length - loser.losses.length;
+                    if(loser.wins.length > loser.losses.length) player_power_ranking += (loser.wins.length - loser.losses.length) / 2;
                 }
                 for(let j = 0; j < player.losses.length; j++){
                     let winner = players[player.losses[j].winner_id];
                     if(winner === undefined) continue;
 
                     //If winner is weak, decrease player power ranking by winner win/loss difference
-                    if(winner.wins.length < winner.losses.length) player_power_ranking += winner.wins.length - winner.losses.length;
+                    if(winner.wins.length < winner.losses.length) player_power_ranking += (winner.wins.length - winner.losses.length) / 2;
                 }
                 player.power_ranking = player_power_ranking;
             }
 
             //Do it twice to clean up from the first time
             for(let i = 0; i < 5; i++) players = iterateThroughPowerRankings(players);
+            //for(let i = 0; i < 5; i++) players = iterateThroughPowerRankings(players);
 
             return players;
         }
